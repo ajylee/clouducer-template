@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+import argparse
+import json
+from pathlib import Path
+
+
+def main():
+    parser = argparse.ArgumentParser()
+
+    keys = [('profile', str, None), ('recording_account', str, None)]
+
+    for key, type_, default in keys:
+        parser.add_argument(f'--{key}', action='store', type=type_, default=default)
+
+    parser.add_argument(f'--laptop-test', action='store_true',
+                        help='Sets up deployment_vars for deploying using "test" AWS profile, directly from laptop. '
+                             'Do not use with other flags.')
+
+    args = parser.parse_args()
+
+    if args.laptop_test:
+        assert args.profile is None, 'Do not use --laptop-test with other flags.'
+        deployment_vars = {"profile": "test", "recording_account": "recording"}
+    else:
+        deployment_vars = {key: getattr(args, key) for key, _, _ in keys}
+        Path('deployment_vars.json').write_text(json.dumps(
+            {key: getattr(args, key) for key, _, _ in keys},
+            indent=True,
+        ))
+
+    Path('deployment_vars.json').write_text(json.dumps(deployment_vars, indent=True))
+
+    print(args)
+
+
+if __name__ == '__main__':
+    main()

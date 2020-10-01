@@ -1,0 +1,47 @@
+#!/usr/bin/env python
+
+import argparse
+import subprocess as sbp
+from subprocess import Popen
+from pathlib import Path
+
+
+def init():
+    if not Path('deployment_env').exists():
+        import venv, sys
+        #venv.main(args=(sys.argv[0], 'deployment_env'))
+        venv.main(args=('deployment_env',))
+        #Popen('python -m venv deployment_env'.split()).wait()
+
+    Popen('deployment_env/bin/pip install -U -r requirements.txt'.split()).wait()
+
+
+def deploy(verb, other_args):
+    env_path = Path('deployment_env')
+    if not env_path.exists():
+        print(f"{env_path}")
+        exit(1)
+    Popen('deployment_env/bin/python main.py'.split() + [verb] + other_args).wait()
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    # parser.add_argument()
+    subparsers = parser.add_subparsers(dest='subparser_name')
+    apply_parser = subparsers.add_parser('apply')
+    destroy_parser = subparsers.add_parser('destroy')
+    init_parser = subparsers.add_parser('init')
+
+    for subparser in [apply_parser, destroy_parser]:
+        subparser.add_argument('-auto-approve', action='store_true', help='pass auto-approve flag in deployment command')
+
+    args, unrecognized_args = parser.parse_known_args()
+
+    if args.subparser_name == 'init':
+        init()
+    else:
+        deploy(args.subparser_name or 'apply', unrecognized_args)
+
+
+if __name__ == '__main__':
+    main()

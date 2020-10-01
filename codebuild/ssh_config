@@ -1,0 +1,4 @@
+Host gitservice
+    Hostname github.com  # customize as needed
+    User git
+    IdentityFile ~/.ssh/gitservice.ed25519

@@ -1,0 +1,41 @@
+# fleet-former buildspec v0.1
+
+version: 0.2
+
+# TODO: use parameter store for known_hosts, ssh_config
+
+env:
+  secrets-manager:
+    # NOTE: you must use API to upload the private key. Newlines do not play well with AWS console.
+    git_ssh_private_key: "path/to/key:ssh_private_key::"
+  parameter-store:
+    target: "/path/to/parameter"  # fill this in!
+
+phases:
+  install:
+    commands:
+      - ssh -V
+      - python --version
+
+      # set up git
+      - cat < codebuild/gitconfig >> ~/.gitconfig
+
+      # set up deployment_vars.json
+      - (cd deploy;
+        ./configure --profile=$target --recording_account='recording')
+
+      # set up ssh
+      - mkdir -pm 700 ~/.ssh
+      - echo '' >> ~/.ssh/config
+      - cat codebuild/ssh_config >> ~/.ssh/config
+      - cat codebuild/known_hosts >> ~/.ssh/known_hosts
+      - touch ~/.ssh/gitservice.ed25519
+      - chmod 600 ~/.ssh/gitservice.ed25519
+      - echo "$git_ssh_private_key" > ~/.ssh/gitservice.ed25519
+      - echo "[recording]" >> deploy/aws_shared_credentials_file
+      - (cd deploy; ./deploy init)
+  build:
+    commands:
+      - # (cd deploy; AWS_SHARED_CREDENTIALS_FILE=aws_shared_credentials_file ./deploy apply --only-ztids 89fbdbc5-a3fa-4a23-8e2c-1a5aa42ac43b)
+      - (cd deploy; AWS_SHARED_CREDENTIALS_FILE=aws_shared_credentials_file ./deploy apply -v)
+
